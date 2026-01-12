@@ -4,6 +4,9 @@
 #include <string>
 #include <iostream>
 
+// Use picojson traits (default in jwt-cpp)
+using jwt_traits = jwt::traits::kazuho_picojson;
+
 namespace middleware {
 
 void AuthMiddleware::doFilter(const drogon::HttpRequestPtr &req,
@@ -54,11 +57,11 @@ void AuthMiddleware::doFilter(const drogon::HttpRequestPtr &req,
             fcb(resp);
             return;
         }
-
-        std::string secret(secretEnv);
-
-        // Decode JWT token
-        auto decoded = jwt::decode(token);
+ with picojson traits
+        auto decoded = jwt::decode<jwt_traits>(token);
+        
+        // Verify JWT signature and claims with picojson traits
+        auto verifier = jwt::verify<jwt::default_clock, jwt_traits>token);
         
         // Verify JWT signature and claims
         auto verifier = jwt::verify()
