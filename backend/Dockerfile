@@ -31,6 +31,8 @@ ENV CMAKE_TOOLCHAIN_FILE=/opt/vcpkg/scripts/buildsystems/vcpkg.cmake
 WORKDIR /app
 COPY . .
 
+RUN git submodule update --init --recursive || true
+
 # Build backend
 RUN cmake -B build -S . -DCMAKE_BUILD_TYPE=Release \
     && cmake --build build/ --config Release
