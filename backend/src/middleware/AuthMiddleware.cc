@@ -1,7 +1,8 @@
 #include "AuthMiddleware.h"
 #include <drogon/drogon.h>
+#include <jwt-cpp/traits/jsoncpp/traits.h>  // ← Include spécifique pour les traits JsonCpp
 #include <jwt-cpp/jwt.h>
-#include <json/json.h>  // ← Ajoutez cet include pour JsonCpp
+#include <json/json.h>
 
 #include <cstdlib>
 #include <string>
@@ -47,10 +48,10 @@ void AuthMiddleware::doFilter(const drogon::HttpRequestPtr &req,
     std::string token = authHeader.substr(7);
 
     try {
-        // Utilisez les traits pour JsonCpp explicitement
+        // Utilisez jwt::traits::jsoncpp avec l'include spécifique
         auto decoded = jwt::decode<jwt::traits::jsoncpp>(token);
         
-        // Create verifier avec les traits JsonCpp
+        // Create verifier
         auto verifier = jwt::verify<jwt::default_clock, jwt::traits::jsoncpp>()
             .allow_algorithm(jwt::algorithm::hs256{secret})
             .with_issuer("restaurant-tier-list");
