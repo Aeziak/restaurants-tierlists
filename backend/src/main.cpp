@@ -10,16 +10,21 @@ int main() {
     std::string dbUser = std::getenv("DATABASE_USER") ? std::getenv("DATABASE_USER") : "tierlist_user";
     std::string dbPassword = std::getenv("DATABASE_PASSWORD") ? std::getenv("DATABASE_PASSWORD") : "tierlist_password";
 
-    // Configure PostgreSQL connection
-    std::string dbConnString = "host=" + dbHost + 
-                                " port=" + dbPort + 
-                                " dbname=" + dbName + 
-                                " user=" + dbUser + 
-                                " password=" + dbPassword;
-
     drogon::app()
-        // Database client
-        .createDbClient("postgresql", dbConnString, 1)
+        // Database client with individual parameters
+        .createDbClient("postgresql",     // dbType
+                       dbHost,             // host
+                       std::stoi(dbPort),  // port
+                       dbName,             // databaseName
+                       dbUser,             // userName
+                       dbPassword,         // password
+                       1,                  // connectionNum
+                       "",                 // filename (empty for network connection)
+                       "default",          // name
+                       false,              // isFast
+                       "utf8",             // characterSet
+                       0.0,                // timeout
+                       true)               // autoBatch
         // HTTP listener
         .addListener("0.0.0.0", 8080)
         .setLogLevel(trantor::Logger::kInfo)
