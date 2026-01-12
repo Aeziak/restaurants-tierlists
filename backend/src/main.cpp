@@ -11,31 +11,30 @@ int main() {
     const std::string dbUser = std::getenv("DATABASE_USER") ? std::getenv("DATABASE_USER") : "tierlist_user";
     const std::string dbPassword = std::getenv("DATABASE_PASSWORD") ? std::getenv("DATABASE_PASSWORD") : "tierlist_password";
 
-    // 2. Création de la configuration spécifique Postgres
+    // 2. Configuration Postgres (Noms conformes aux suggestions du compilateur)
     drogon::orm::PostgresConfig pgConfig;
-    pgConfig.host_ = dbHost;
-    pgConfig.port_ = static_cast<unsigned short>(std::stoi(dbPort));
-    pgConfig.dbname_ = dbName;
-    pgConfig.user_ = dbUser;
-    pgConfig.password_ = dbPassword;
-    pgConfig.isFast_ = false;
-    pgConfig.connectionNumber_ = 1;
-    pgConfig.name_ = "default";
-    pgConfig.characterSet_ = "utf8";
+    pgConfig.host = dbHost;
+    pgConfig.port = static_cast<unsigned short>(std::stoi(dbPort));
+    pgConfig.dbname = dbName;
+    pgConfig.user = dbUser;
+    pgConfig.password = dbPassword;
+    pgConfig.isFast = false;
+    pgConfig.connectionNumber = 1;
+    pgConfig.name = "default";
+    pgConfig.characterSet = "utf8";
 
     // 3. Encapsulation dans le variant DbConfig
     drogon::orm::DbConfig config(pgConfig);
 
-    // 4. Configuration et lancement
+    // 4. Configuration de l'application
     drogon::app()
         .addDbClient(config) 
         .addListener("0.0.0.0", 8080)
         .setLogLevel(trantor::Logger::kInfo)
         .setThreadNum(16);
 
-    LOG_INFO << "Server running on http://0.0.0.0:8080";
-    LOG_INFO << "Database (Postgres) configured: " << dbName;
-
+    LOG_INFO << "Backend started on http://0.0.0.0:8080";
+    
     drogon::app().run();
 
     return 0;
