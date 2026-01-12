@@ -21,7 +21,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE jwt-cpp::jwt-cpp)
 
 # Find redis-plus-plus
 find_package(redis++ CONFIG REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE redis++::redis++)
+target_link_libraries(${PROJECT_NAME} PRIVATE redis++::redis++_static)
 
 # Find PostgreSQL
 find_package(PostgreSQL REQUIRED)
