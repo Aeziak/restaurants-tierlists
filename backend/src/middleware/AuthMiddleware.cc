@@ -1,6 +1,7 @@
 #include "AuthMiddleware.h"
 #include <drogon/drogon.h>
 #include <jwt-cpp/jwt.h>
+#include <json/json.h>  // ← Ajoutez cet include pour JsonCpp
 
 #include <cstdlib>
 #include <string>
@@ -46,35 +47,38 @@ void AuthMiddleware::doFilter(const drogon::HttpRequestPtr &req,
     std::string token = authHeader.substr(7);
 
     try {
-        // Decode the token
-        auto decoded = jwt::decode(token);
+        // Utilisez les traits pour JsonCpp explicitement
+        auto decoded = jwt::decode<jwt::traits::jsoncpp>(token);
         
-        // Create verifier with the correct secret variable
-        auto verifier = jwt::verify()
-            .allow_algorithm(jwt::algorithm::hs256{secret})  // ← FIX 1: utilisez 'secret' pas 'jwtSecret'
+        // Create verifier avec les traits JsonCpp
+        auto verifier = jwt::verify<jwt::default_clock, jwt::traits::jsoncpp>()
+            .allow_algorithm(jwt::algorithm::hs256{secret})
             .with_issuer("restaurant-tier-list");
         
         // Verify the token
         verifier.verify(decoded);
         
         // Extract user_id from payload
-        auto claims = decoded.get_payload_json();
-        std::string userId = claims["user_id"].asString();
+        auto payload = decoded.get_payload();
+        if (!payload.isMember("user_id")) {
+            throw std::runtime_error("Missing user_id in token payload");
+        }
+        std::string userId = payload["user_id"].asString();
         
         // Store in request attributes
         req->attributes()->insert("user_id", userId);
         
         // Continue the chain
-        ccb();  // ← FIX 2: utilisez 'ccb()' pas 'fcb()' pour continuer la chaîne
+        ccb();
         
     } catch (const std::exception& e)
     {
         LOG_ERROR << "JWT Processing error: " << e.what();
         Json::Value error;
-        error["error"]["code"] = "UNAUTHORIZED";  // ← FIX 3: UNAUTHORIZED au lieu de BAD_REQUEST
+        error["error"]["code"] = "UNAUTHORIZED";
         error["error"]["message"] = "Invalid or expired token";
         auto resp = drogon::HttpResponse::newHttpJsonResponse(error);
-        resp->setStatusCode(drogon::k401Unauthorized);  // ← FIX 4: 401 au lieu de 400
+        resp->setStatusCode(drogon::k401Unauthorized);
         fcb(resp);
     }
 }
