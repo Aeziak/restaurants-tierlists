@@ -51,6 +51,7 @@ services:
       DATABASE_PASSWORD: tierlist_password
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-5rlXFhHHaAQXio5y6risVVlTTqnTN6YSm/Lv8Xo9q1Q=}
     depends_on:
       postgres:
         condition: service_healthy

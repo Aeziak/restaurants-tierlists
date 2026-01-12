@@ -9,6 +9,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 add_executable(${PROJECT_NAME}
     src/main.cpp
     src/controllers/HealthController.cc
+    src/controllers/UserController.cc
+    src/middleware/AuthMiddleware.cc
 )
 
 # Find Drogon
