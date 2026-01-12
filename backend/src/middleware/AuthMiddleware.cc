@@ -1,3 +1,4 @@
+#define JWT_USE_PICOJSON
 #include "AuthMiddleware.h"
 #include <drogon/drogon.h>
 #include <jwt-cpp/jwt.h>
