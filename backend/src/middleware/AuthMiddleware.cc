@@ -53,8 +53,7 @@ void AuthMiddleware::doFilter(const drogon::HttpRequestPtr &req,
         auto decoded = jwt::decode<traits>(token);
         
         // Create verifier with explicit trait
-        jwt::default_clock clock;
-        auto verifier = jwt::verify<traits>(clock)
+        auto verifier = jwt::verify<traits>()
             .with_issuer("restaurant-tier-list")
             .allow_algorithm(jwt::algorithm::hs256{secret});
         
