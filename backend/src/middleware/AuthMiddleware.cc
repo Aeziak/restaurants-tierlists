@@ -43,11 +43,14 @@ void AuthMiddleware::doFilter(const drogon::HttpRequestPtr &req,
     std::string token = authHeader.substr(7);
 
     try {
-        // Decode token (default traits)
-        auto decoded = jwt::decode(token);
+        // ✅ Utiliser picojson_traits explicitement
+        using traits = jwt::picojson_traits;
 
-        // Verify
-        jwt::verify()
+        // Decode JWT
+        auto decoded = jwt::decode<traits>(token);
+
+        // Verify JWT
+        jwt::verify<traits>(jwt::default_clock{})
             .with_issuer("restaurant-tier-list")
             .allow_algorithm(jwt::algorithm::hs256{secret})
             .verify(decoded);
