@@ -1,7 +1,6 @@
 #include "AuthMiddleware.h"
 #include <drogon/drogon.h>
-#include <jwt-cpp/jwt.h> 
-// RETIRÉ: #include <jwt-cpp/traits/kazuho-picojson.h> (C'était la cause de l'erreur)
+#include <jwt-cpp/jwt.h>
 
 #include <cstdlib>
 #include <string>
@@ -46,55 +45,36 @@ void AuthMiddleware::doFilter(const drogon::HttpRequestPtr &req,
 
     std::string token = authHeader.substr(7);
 
-    try
-    {
-        // 4. Décodage avec spécification explicite des traits PICOJSON
-        // On garde cette partie car le compilateur en a besoin pour savoir comment parser le JSON
-        auto decoded = jwt::decode<jwt::traits::kazuho_picojson>(token);
-
-        // 5. Vérification
-        auto verifier = jwt::verify<jwt::default_clock, jwt::traits::kazuho_picojson>()
-            .allow_algorithm(jwt::algorithm::hs256{secret})
-            .leeway(60);
-
-        verifier.verify(decoded);
-
-        // 6. Extraction des claims
-        std::string userId;
-        std::string email;
-
-        if (decoded.has_payload_claim("sub"))
-            userId = decoded.get_payload_claim("sub").as_string();
+    try {
+        // Decode the token
+        auto decoded = jwt::decode(token);
         
-        if (decoded.has_payload_claim("email"))
-            email = decoded.get_payload_claim("email").as_string();
-
-        // 7. Injection dans la requête
-        if (!userId.empty()) req->attributes()->insert("userId", userId);
-        if (!email.empty())  req->attributes()->insert("email", email);
-
-        LOG_DEBUG << "Authenticated User: " << email << " (ID: " << userId << ")";
-
-        ccb();
-    }
-    catch (const jwt::error::token_verification_exception& e)
-    {
-        LOG_WARN << "JWT Verification failed: " << e.what();
-        Json::Value error;
-        error["error"]["code"] = "UNAUTHORIZED";
-        error["error"]["message"] = "Invalid token signature or expired token";
-        auto resp = drogon::HttpResponse::newHttpJsonResponse(error);
-        resp->setStatusCode(drogon::k401Unauthorized);
-        fcb(resp);
-    }
-    catch (const std::exception& e)
+        // Create verifier with the correct secret variable
+        auto verifier = jwt::verify()
+            .allow_algorithm(jwt::algorithm::hs256{secret})  // ← FIX 1: utilisez 'secret' pas 'jwtSecret'
+            .with_issuer("restaurant-tier-list");
+        
+        // Verify the token
+        verifier.verify(decoded);
+        
+        // Extract user_id from payload
+        auto claims = decoded.get_payload_json();
+        std::string userId = claims["user_id"].asString();
+        
+        // Store in request attributes
+        req->attributes()->insert("user_id", userId);
+        
+        // Continue the chain
+        ccb();  // ← FIX 2: utilisez 'ccb()' pas 'fcb()' pour continuer la chaîne
+        
+    } catch (const std::exception& e)
     {
         LOG_ERROR << "JWT Processing error: " << e.what();
         Json::Value error;
-        error["error"]["code"] = "BAD_REQUEST";
-        error["error"]["message"] = "Token processing failed";
+        error["error"]["code"] = "UNAUTHORIZED";  // ← FIX 3: UNAUTHORIZED au lieu de BAD_REQUEST
+        error["error"]["message"] = "Invalid or expired token";
         auto resp = drogon::HttpResponse::newHttpJsonResponse(error);
-        resp->setStatusCode(drogon::k400BadRequest);
+        resp->setStatusCode(drogon::k401Unauthorized);  // ← FIX 4: 401 au lieu de 400
         fcb(resp);
     }
 }
