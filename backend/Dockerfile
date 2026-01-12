@@ -10,6 +10,11 @@ RUN apt-get update && apt-get install -y \
     zlib1g-dev \
     libbrotli-dev \
     uuid-dev \
+    curl \
+    zip \
+    unzip \
+    tar \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Drogon dependencies via vcpkg
