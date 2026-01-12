@@ -47,15 +47,12 @@ void AuthMiddleware::doFilter(const drogon::HttpRequestPtr &req,
 
     try {
         // Specify picojson trait explicitly (jwt-cpp default)
-        using traits = jwt::traits::kazuho_picojson;
-        
-        // Decode JWT with explicit trait
-        auto decoded = jwt::decode<traits>(token);
+        auto decoded = jwt::decode(token);
         
         // Create verifier with explicit trait
-        auto verifier = jwt::verify<jwt::default_clock, traits>()
-            .allow_algorithm(jwt::algorithm::hs256{secret})
-            .with_issuer("restaurant-tier-list");
+        auto verifier = jwt::verify()
+            .with_issuer("restaurant-tier-list")
+            .allow_algorithm(jwt::algorithm::hs256{secret});
         
         // Verify the token
         verifier.verify(decoded);
