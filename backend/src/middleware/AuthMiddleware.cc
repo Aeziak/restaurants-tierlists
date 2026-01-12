@@ -43,8 +43,8 @@ void AuthMiddleware::doFilter(const drogon::HttpRequestPtr &req,
     std::string token = authHeader.substr(7);
 
     try {
-        // ✅ Utiliser picojson_traits explicitement
-        using traits = jwt::picojson_traits;
+        // Utiliser les traits de picojson
+        using traits = jwt::traits::kazuho_picojson;
 
         // Decode JWT
         auto decoded = jwt::decode<traits>(token);
