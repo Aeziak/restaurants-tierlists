@@ -12,10 +12,9 @@ void AuthMiddleware::doFilter(const drogon::HttpRequestPtr &req,
                               drogon::FilterCallback &&fcb,
                               drogon::FilterChainCallback &&ccb)
 {
-    // 1. Récupération des variables d'environnement
     static const char* secretEnv = std::getenv("NEXTAUTH_SECRET");
     static const std::string secret = secretEnv ? secretEnv : "";
-    
+
     if (secret.empty())
     {
         LOG_ERROR << "CRITICAL: NEXTAUTH_SECRET environment variable not set!";
@@ -28,11 +27,9 @@ void AuthMiddleware::doFilter(const drogon::HttpRequestPtr &req,
         return;
     }
 
-    // 2. Extraction du Header Authorization
     const std::string& authHeader = req->getHeader("Authorization");
 
-    // 3. Validation du format "Bearer <token>"
-    if (authHeader.empty() || authHeader.size() < 7 || authHeader.substr(0, 7) != "Bearer ")
+    if (authHeader.size() < 7 || authHeader.substr(0, 7) != "Bearer ")
     {
         Json::Value error;
         error["error"]["code"] = "UNAUTHORIZED";
@@ -46,19 +43,16 @@ void AuthMiddleware::doFilter(const drogon::HttpRequestPtr &req,
     std::string token = authHeader.substr(7);
 
     try {
-        // Specify picojson trait explicitly (jwt-cpp default)
-        using traits = jwt::traits::kazuho_picojson_t;
-        
-        // Decode JWT with explicit trait
-        auto decoded = jwt::decode<traits>(token);
-        
-        // Create verifier with explicit trait
-        jwt::verify<traits>(jwt::default_clock{})
+        // Decode token (default traits)
+        auto decoded = jwt::decode(token);
+
+        // Verify
+        jwt::verify()
             .with_issuer("restaurant-tier-list")
             .allow_algorithm(jwt::algorithm::hs256{secret})
             .verify(decoded);
-        
-        // Extract user_id from payload - avec picojson
+
+        // Extract user_id
         std::string userId;
         for (auto& claim : decoded.get_payload_claims()) {
             if (claim.first == "user_id") {
@@ -66,19 +60,15 @@ void AuthMiddleware::doFilter(const drogon::HttpRequestPtr &req,
                 break;
             }
         }
-        
+
         if (userId.empty()) {
             throw std::runtime_error("Missing user_id in token payload");
         }
-        
-        // Store in request attributes
+
         req->attributes()->insert("user_id", userId);
-        
-        // Continue the chain
         ccb();
-        
-    } catch (const std::exception& e)
-    {
+
+    } catch (const std::exception& e) {
         LOG_ERROR << "JWT Processing error: " << e.what();
         Json::Value error;
         error["error"]["code"] = "UNAUTHORIZED";
