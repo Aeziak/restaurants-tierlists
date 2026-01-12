@@ -50,10 +50,10 @@ void AuthMiddleware::doFilter(const drogon::HttpRequestPtr &req,
     {
         // 4. Décodage avec spécification explicite des traits PICOJSON
         // On garde cette partie car le compilateur en a besoin pour savoir comment parser le JSON
-        auto decoded = jwt::decode<jwt::traits::kazuho_picojson>(token);
+        auto decoded = jwt::decode(token);
 
         // 5. Vérification
-        auto verifier = jwt::verify<jwt::traits::kazuho_picojson>()
+        auto verifier = jwt::verify()
             .allow_algorithm(jwt::algorithm::hs256{secret})
             .leeway(60);
 
