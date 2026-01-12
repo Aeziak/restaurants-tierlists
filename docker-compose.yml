@@ -1,0 +1,101 @@
+version: '3.9'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: tierlist-postgres
+    environment:
+      POSTGRES_DB: restaurant_tierlist
+      POSTGRES_USER: tierlist_user
+      POSTGRES_PASSWORD: tierlist_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - tierlist-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tierlist_user -d restaurant_tierlist"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: tierlist-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - tierlist-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # C++ Backend (Drogon)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tierlist-backend
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: restaurant_tierlist
+      DATABASE_USER: tierlist_user
+      DATABASE_PASSWORD: tierlist_password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - tierlist-network
+    restart: unless-stopped
+
+  # Next.js Frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: tierlist-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_BACKEND_URL: http://backend:8080
+    depends_on:
+      - backend
+    networks:
+      - tierlist-network
+    volumes:
+      - ./app:/app/app
+      - ./public:/app/public
+      - /app/node_modules
+      - /app/.next
+    restart: unless-stopped
+
+  # Export Service (Node.js)
+  export-service:
+    build:
+      context: ./export-service
+      dockerfile: Dockerfile
+    container_name: tierlist-export-service
+    ports:
+      - "3001:3001"
+    networks:
+      - tierlist-network
+    restart: unless-stopped
+
+networks:
+  tierlist-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

@@ -1,36 +1,88 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Restaurant Tier List
 
-## Getting Started
+A geo-based collaborative tier list app for restaurants with PWA capabilities.
 
-First, run the development server:
+## Tech Stack
+
+- **Frontend**: Next.js 16.1.1 with TypeScript, Tailwind CSS
+- **Backend**: C++ Drogon 1.9.1 framework
+- **Database**: PostgreSQL 16
+- **Cache**: Redis 7
+- **Export Service**: Node.js 20
+- **Infrastructure**: Docker Compose
+
+## Quick Start
+
+### Prerequisites
+
+- Docker & Docker Compose
+- Node.js 20+ and pnpm (for local frontend development)
+- GCC 13+ (for local backend development)
+
+### Run with Docker
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop all services
+docker-compose down
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Services will be available at:
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8080
+- **Export Service**: http://localhost:3001
+- **PostgreSQL**: localhost:5432
+- **Redis**: localhost:6379
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Local Development (Frontend only)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+pnpm install
+pnpm dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) with your browser.
+
+## Project Structure
+
+```
+restaurant-tier-list/
+├── app/                    # Next.js app directory
+├── backend/                # C++ Drogon backend
+│   └── src/
+│       ├── controllers/
+│       ├── services/
+│       ├── middleware/
+│       ├── models/
+│       └── utils/
+├── export-service/         # Node.js image generation service
+├── public/                 # Static assets
+└── docker-compose.yml      # Container orchestration
+```
+
+## Architecture
+
+See architecture documentation in `_bmad-output/planning-artifacts/` for detailed decisions and patterns.
+
+## Development Status
+
+Epic 1 - Infrastructure: In Progress
+- ✅ Story 1.1: Next.js initialized
+- ✅ Story 1.2: Dependencies installed
+- ✅ Story 1.3: Backend structure created
+- 🚧 Story 1.4: Docker Compose (current)
 
 ## Learn More
 
-To learn more about Next.js, take a look at the following resources:
+- [Next.js Documentation](https://nextjs.org/docs)
+- [Drogon Documentation](https://github.com/drogonframework/drogon)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## License
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Private project
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

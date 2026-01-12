@@ -1,0 +1,123 @@
+version: '3.9'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: tierlist-postgres-prod
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME:-restaurant_tierlist}
+      POSTGRES_USER: ${DATABASE_USER:-tierlist_user}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - tierlist-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER:-tierlist_user} -d ${DATABASE_NAME:-restaurant_tierlist}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: tierlist-redis-prod
+    networks:
+      - tierlist-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # C++ Backend (Drogon)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tierlist-backend-prod
+    environment:
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: ${DATABASE_NAME:-restaurant_tierlist}
+      DATABASE_USER: ${DATABASE_USER:-tierlist_user}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD required}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - tierlist-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`${DOMAIN}`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.backend.entrypoints=websecure"
+      - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.backend.loadbalancer.server.port=8080"
+      - "traefik.http.middlewares.backend-ratelimit.ratelimit.average=100"
+      - "traefik.http.middlewares.backend-ratelimit.ratelimit.period=1m"
+      - "traefik.http.routers.backend.middlewares=backend-ratelimit"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Next.js Frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend.prod
+    container_name: tierlist-frontend-prod
+    environment:
+      NEXT_PUBLIC_BACKEND_URL: /api
+      NODE_ENV: production
+    depends_on:
+      - backend
+    networks:
+      - tierlist-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.frontend.loadbalancer.server.port=3000"
+      - "traefik.http.middlewares.frontend-ratelimit.ratelimit.average=100"
+      - "traefik.http.middlewares.frontend-ratelimit.ratelimit.period=1m"
+      - "traefik.http.routers.frontend.middlewares=frontend-ratelimit"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Export Service (Node.js)
+  export-service:
+    build:
+      context: ./export-service
+      dockerfile: Dockerfile
+    container_name: tierlist-export-service-prod
+    networks:
+      - tierlist-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  tierlist-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
