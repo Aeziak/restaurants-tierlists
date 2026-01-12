@@ -22,7 +22,7 @@ WORKDIR /opt
 RUN git clone https://github.com/Microsoft/vcpkg.git \
     && cd vcpkg \
     && ./bootstrap-vcpkg.sh \
-    && ./vcpkg install drogon jwt-cpp redis-plus-plus
+    && ./vcpkg install drogon jwt-cpp redis-plus-plus nlohmann-json
 
 # Set vcpkg toolchain
 ENV CMAKE_TOOLCHAIN_FILE=/opt/vcpkg/scripts/buildsystems/vcpkg.cmake
@@ -30,8 +30,6 @@ ENV CMAKE_TOOLCHAIN_FILE=/opt/vcpkg/scripts/buildsystems/vcpkg.cmake
 # Copy backend source
 WORKDIR /app
 COPY . .
-
-RUN git submodule update --init --recursive || true
 
 # Build backend
 RUN cmake -B build -S . -DCMAKE_BUILD_TYPE=Release \

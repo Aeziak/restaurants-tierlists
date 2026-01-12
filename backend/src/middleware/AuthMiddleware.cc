@@ -1,8 +1,6 @@
 #include "AuthMiddleware.h"
 #include <drogon/drogon.h>
 #include <jwt-cpp/jwt.h>
-// ✅ Include the specific traits header
-#include <jwt-cpp/traits/kazuho-picojson/traits.h>
 
 #include <cstdlib>
 #include <string>
@@ -22,31 +20,27 @@ void AuthMiddleware::doFilter(const drogon::HttpRequestPtr &req,
     std::string token = authHeader.substr(7);
 
     try {
-        // ✅ Define the traits type (correct)
-        using traits = jwt::traits::kazuho_picojson;
-        // ✅ Option A: Use `jwt::create<traits>()` and `jwt::verify<traits>()`
-        // ✅ Option B: Import the entire `jwt::` namespace for this trait (often easier)
-        using namespace jwt::defaults;
+        // Use nlohmann_json trait (better support)
+        using traits = jwt::traits::nlohmann_json;
 
         // Decode JWT
         auto decoded = jwt::decode<traits>(token);
 
         // Verify JWT
-        // Using the namespace import (Option B), it looks clean:
-        verify()
+        auto verifier = jwt::verify<jwt::default_clock, traits>()
             .allow_algorithm(jwt::algorithm::hs256{secret})
-            .verify(decoded);
+            .with_issuer("restaurant-tier-list");
+        
+        verifier.verify(decoded);
 
-        // --- IMPORTANT: API CHANGE in jwt-cpp v0.7.0+ ---
-        // `get_payload_claims()` was replaced by `get_payload_json()`[citation:1]
+        // Extract user_id from payload
         auto payload = decoded.get_payload_json();
-
-        // Extract user_id - the method to access claims has changed.
         std::string userId;
-        if (payload.has("user_id")) {
-            userId = payload["user_id"].as_string(); // Access via picojson
-        } else if (payload.has("sub")) { // Fallback to standard 'subject' claim
-            userId = payload["sub"].as_string();
+        
+        if (payload.contains("user_id")) {
+            userId = payload["user_id"].get<std::string>();
+        } else if (payload.contains("sub")) {
+            userId = payload["sub"].get<std::string>();
         }
 
         if (userId.empty()) {

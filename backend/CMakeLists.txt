@@ -21,6 +21,10 @@ target_link_libraries(${PROJECT_NAME} PRIVATE Drogon::Drogon)
 find_package(jwt-cpp CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE jwt-cpp::jwt-cpp)
 
+# Find nlohmann_json
+find_package(nlohmann_json CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE nlohmann_json::nlohmann_json)
+
 # Find redis-plus-plus
 find_package(redis++ CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE redis++::redis++_static)
