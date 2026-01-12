@@ -1,8 +1,6 @@
 #include "AuthMiddleware.h"
 #include <drogon/drogon.h>
-#include <jwt-cpp/traits/jsoncpp/traits.h>  // ← Include spécifique pour les traits JsonCpp
 #include <jwt-cpp/jwt.h>
-#include <json/json.h>
 
 #include <cstdlib>
 #include <string>
@@ -48,23 +46,29 @@ void AuthMiddleware::doFilter(const drogon::HttpRequestPtr &req,
     std::string token = authHeader.substr(7);
 
     try {
-        // Utilisez jwt::traits::jsoncpp avec l'include spécifique
-        auto decoded = jwt::decode<jwt::traits::jsoncpp>(token);
+        // Utilisez le trait par défaut (picojson)
+        auto decoded = jwt::decode(token);
         
-        // Create verifier
-        auto verifier = jwt::verify<jwt::default_clock, jwt::traits::jsoncpp>()
+        // Create verifier avec le trait par défaut
+        auto verifier = jwt::verify()
             .allow_algorithm(jwt::algorithm::hs256{secret})
             .with_issuer("restaurant-tier-list");
         
         // Verify the token
         verifier.verify(decoded);
         
-        // Extract user_id from payload
-        auto payload = decoded.get_payload();
-        if (!payload.isMember("user_id")) {
+        // Extract user_id from payload - avec picojson
+        std::string userId;
+        for (auto& claim : decoded.get_payload_claims()) {
+            if (claim.first == "user_id") {
+                userId = claim.second.as_string();
+                break;
+            }
+        }
+        
+        if (userId.empty()) {
             throw std::runtime_error("Missing user_id in token payload");
         }
-        std::string userId = payload["user_id"].asString();
         
         // Store in request attributes
         req->attributes()->insert("user_id", userId);
