@@ -57,10 +57,11 @@ void AuthMiddleware::doFilter(const drogon::HttpRequestPtr &req,
 
         std::string secret(secretEnv);
 
-        // Decode and verify JWT with explicit template parameter
-        auto decoded = jwt::decode<jwt::traits::kazuho_picojson>(token);
+        // Decode JWT token
+        auto decoded = jwt::decode(token);
         
-        auto verifier = jwt::verify<jwt::default_clock, jwt::traits::kazuho_picojson>()
+        // Verify JWT signature and claims
+        auto verifier = jwt::verify()
             .allow_algorithm(jwt::algorithm::hs256{secret})
             .with_issuer("http://localhost:3000"); // NextAuth.js default issuer
 
