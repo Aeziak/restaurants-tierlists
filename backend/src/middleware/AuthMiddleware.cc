@@ -15,14 +15,10 @@ void AuthMiddleware::doFilter(const drogon::HttpRequestPtr &req,
     
     if (authHeader.empty())
     {
-        auto resp = drogon::HttpResponse::newHttpJsonResponse(
-            Json::Value{
-                {"error", Json::Value{
-                    {"code", "UNAUTHORIZED"},
-                    {"message", "Missing Authorization header"}
-                }}
-            }
-        );
+        Json::Value error;
+        error["error"]["code"] = "UNAUTHORIZED";
+        error["error"]["message"] = "Missing Authorization header";
+        auto resp = drogon::HttpResponse::newHttpJsonResponse(error);
         resp->setStatusCode(drogon::k401Unauthorized);
         fcb(resp);
         return;
@@ -31,14 +27,10 @@ void AuthMiddleware::doFilter(const drogon::HttpRequestPtr &req,
     // Check for "Bearer " prefix
     if (authHeader.substr(0, 7) != "Bearer ")
     {
-        auto resp = drogon::HttpResponse::newHttpJsonResponse(
-            Json::Value{
-                {"error", Json::Value{
-                    {"code", "UNAUTHORIZED"},
-                    {"message", "Invalid Authorization header format. Expected: Bearer <token>"}
-                }}
-            }
-        );
+        Json::Value error;
+        error["error"]["code"] = "UNAUTHORIZED";
+        error["error"]["message"] = "Invalid Authorization header format. Expected: Bearer <token>";
+        auto resp = drogon::HttpResponse::newHttpJsonResponse(error);
         resp->setStatusCode(drogon::k401Unauthorized);
         fcb(resp);
         return;
@@ -54,14 +46,10 @@ void AuthMiddleware::doFilter(const drogon::HttpRequestPtr &req,
         if (!secretEnv)
         {
             std::cerr << "ERROR: NEXTAUTH_SECRET environment variable not set!" << std::endl;
-            auto resp = drogon::HttpResponse::newHttpJsonResponse(
-                Json::Value{
-                    {"error", Json::Value{
-                        {"code", "SERVER_ERROR"},
-                        {"message", "Authentication not configured"}
-                    }}
-                }
-            );
+            Json::Value error;
+            error["error"]["code"] = "SERVER_ERROR";
+            error["error"]["message"] = "Authentication not configured";
+            auto resp = drogon::HttpResponse::newHttpJsonResponse(error);
             resp->setStatusCode(drogon::k500InternalServerError);
             fcb(resp);
             return;
@@ -69,10 +57,10 @@ void AuthMiddleware::doFilter(const drogon::HttpRequestPtr &req,
 
         std::string secret(secretEnv);
 
-        // Decode and verify JWT
-        auto decoded = jwt::decode(token);
+        // Decode and verify JWT with explicit template parameter
+        auto decoded = jwt::decode<jwt::traits::kazuho_picojson>(token);
         
-        auto verifier = jwt::verify()
+        auto verifier = jwt::verify<jwt::default_clock, jwt::traits::kazuho_picojson>()
             .allow_algorithm(jwt::algorithm::hs256{secret})
             .with_issuer("http://localhost:3000"); // NextAuth.js default issuer
 
@@ -95,28 +83,20 @@ void AuthMiddleware::doFilter(const drogon::HttpRequestPtr &req,
     catch (const jwt::error::token_verification_exception& e)
     {
         std::cerr << "JWT verification failed: " << e.what() << std::endl;
-        auto resp = drogon::HttpResponse::newHttpJsonResponse(
-            Json::Value{
-                {"error", Json::Value{
-                    {"code", "UNAUTHORIZED"},
-                    {"message", "Invalid or expired token"}
-                }}
-            }
-        );
+        Json::Value error;
+        error["error"]["code"] = "UNAUTHORIZED";
+        error["error"]["message"] = "Invalid or expired token";
+        auto resp = drogon::HttpResponse::newHttpJsonResponse(error);
         resp->setStatusCode(drogon::k401Unauthorized);
         fcb(resp);
     }
     catch (const std::exception& e)
     {
         std::cerr << "JWT processing error: " << e.what() << std::endl;
-        auto resp = drogon::HttpResponse::newHttpJsonResponse(
-            Json::Value{
-                {"error", Json::Value{
-                    {"code", "UNAUTHORIZED"},
-                    {"message", "Token validation failed"}
-                }}
-            }
-        );
+        Json::Value error;
+        error["error"]["code"] = "UNAUTHORIZED";
+        error["error"]["message"] = "Token validation failed";
+        auto resp = drogon::HttpResponse::newHttpJsonResponse(error);
         resp->setStatusCode(drogon::k401Unauthorized);
         fcb(resp);
     }
