@@ -4,9 +4,6 @@
 #include <string>
 #include <iostream>
 
-// Use picojson traits (default in jwt-cpp)
-using jwt_traits = jwt::traits::kazuho_picojson;
-
 namespace middleware {
 
 void AuthMiddleware::doFilter(const drogon::HttpRequestPtr &req,
@@ -57,13 +54,13 @@ void AuthMiddleware::doFilter(const drogon::HttpRequestPtr &req,
             fcb(resp);
             return;
         }
- with picojson traits
-        auto decoded = jwt::decode<jwt_traits>(token);
+
+        std::string secret(secretEnv);
+
+        // Decode JWT token
+        auto decoded = jwt::decode(token);
         
-        // Verify JWT signature and claims with picojson traits
-        auto verifier = jwt::verify<jwt::default_clock, jwt_traits>token);
-        
-        // Verify JWT signature and claims
+        // Create verifier with HS256 algorithm
         auto verifier = jwt::verify()
             .allow_algorithm(jwt::algorithm::hs256{secret})
             .with_issuer("http://localhost:3000"); // NextAuth.js default issuer
