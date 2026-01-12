@@ -1,4 +1,3 @@
-#define JWT_USE_PICOJSON
 #include "AuthMiddleware.h"
 #include <drogon/drogon.h>
 #include <jwt-cpp/jwt.h>
@@ -13,7 +12,7 @@ void AuthMiddleware::doFilter(const drogon::HttpRequestPtr &req,
                               drogon::FilterCallback &&fcb,
                               drogon::FilterChainCallback &&ccb)
 {
-    // 1. Récupération des variables d'environnement
+    // 1. Récupération de la clé secrète
     static const char* secretEnv = std::getenv("NEXTAUTH_SECRET");
     static const std::string secret = secretEnv ? secretEnv : "";
     
@@ -37,7 +36,7 @@ void AuthMiddleware::doFilter(const drogon::HttpRequestPtr &req,
     {
         Json::Value error;
         error["error"]["code"] = "UNAUTHORIZED";
-        error["error"]["message"] = "Missing or invalid Authorization header (Expected: 'Bearer <token>')";
+        error["error"]["message"] = "Missing or invalid Authorization header";
         auto resp = drogon::HttpResponse::newHttpJsonResponse(error);
         resp->setStatusCode(drogon::k401Unauthorized);
         fcb(resp);
@@ -47,43 +46,36 @@ void AuthMiddleware::doFilter(const drogon::HttpRequestPtr &req,
     std::string token = authHeader.substr(7);
 
     try {
-        // Specify picojson trait explicitly (jwt-cpp default)
-        using traits = jwt::traits::kazuho_picojson;
+        // 4. Décodage et vérification avec les traits par défaut
+        // jwt-cpp gère automatiquement le parsing JSON interne ici
+        auto decoded = jwt::decode(token);
         
-        // Decode JWT with explicit trait
-        auto decoded = jwt::decode<traits>(token);
-        
-        // Create verifier with explicit trait
         jwt::default_clock clock;
-        auto verifier = jwt::verify<traits>(clock)
+        auto verifier = jwt::verify(clock)
             .with_issuer("restaurant-tier-list")
             .allow_algorithm(jwt::algorithm::hs256{secret});
         
-        // Verify the token
         verifier.verify(decoded);
         
-        // Extract user_id from payload - avec picojson
-        std::string userId;
-        for (auto& claim : decoded.get_payload_claims()) {
-            if (claim.first == "user_id") {
-                userId = claim.second.as_string();
-                break;
-            }
+        // 5. Extraction sécurisée du user_id
+        if (decoded.has_payload_claim("user_id")) 
+        {
+            std::string userId = decoded.get_payload_claim("user_id").as_string();
+            
+            // Stockage dans la requête pour les contrôleurs
+            req->attributes()->insert("user_id", userId);
+            
+            // Succès : passage au filtre suivant ou au contrôleur
+            ccb();
+        } 
+        else 
+        {
+            throw std::runtime_error("Payload missing 'user_id' claim");
         }
-        
-        if (userId.empty()) {
-            throw std::runtime_error("Missing user_id in token payload");
-        }
-        
-        // Store in request attributes
-        req->attributes()->insert("user_id", userId);
-        
-        // Continue the chain
-        ccb();
         
     } catch (const std::exception& e)
     {
-        LOG_ERROR << "JWT Processing error: " << e.what();
+        LOG_ERROR << "JWT Auth Error: " << e.what();
         Json::Value error;
         error["error"]["code"] = "UNAUTHORIZED";
         error["error"]["message"] = "Invalid or expired token";
