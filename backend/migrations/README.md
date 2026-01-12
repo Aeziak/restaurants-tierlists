@@ -37,6 +37,7 @@ SELECT * FROM schema_migrations ORDER BY version;
 ## Current Migrations
 
 - **000_init_database.sql**: Initialize database with UTF-8 encoding, UTC timezone, and migration tracking table
+- **001_create_users.sql**: Create users table with Google OAuth fields (googleId, email, name, avatarUrl)
 
 ## Future Migration Topics
 
