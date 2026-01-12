@@ -11,12 +11,12 @@ int main() {
     const std::string dbUser = std::getenv("DATABASE_USER") ? std::getenv("DATABASE_USER") : "tierlist_user";
     const std::string dbPassword = std::getenv("DATABASE_PASSWORD") ? std::getenv("DATABASE_PASSWORD") : "tierlist_password";
 
-    // 2. Configuration Postgres (Noms conformes aux suggestions du compilateur)
+    // 2. Configuration Postgres (Correction des noms de membres pour 1.9.1)
     drogon::orm::PostgresConfig pgConfig;
     pgConfig.host = dbHost;
     pgConfig.port = static_cast<unsigned short>(std::stoi(dbPort));
-    pgConfig.dbname = dbName;
-    pgConfig.user = dbUser;
+    pgConfig.dbName = dbName;      // Note le 'N' majuscule
+    pgConfig.username = dbUser;    // Note 'username' au lieu de 'user'
     pgConfig.password = dbPassword;
     pgConfig.isFast = false;
     pgConfig.connectionNumber = 1;
@@ -26,7 +26,7 @@ int main() {
     // 3. Encapsulation dans le variant DbConfig
     drogon::orm::DbConfig config(pgConfig);
 
-    // 4. Configuration de l'application
+    // 4. Lancement
     drogon::app()
         .addDbClient(config) 
         .addListener("0.0.0.0", 8080)
