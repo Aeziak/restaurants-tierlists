@@ -1,9 +1,8 @@
 #include "AuthMiddleware.h"
 #include <drogon/drogon.h>
-#include <jwt-cpp/jwt.h>
-// On inclut les traits pour picojson (le parseur par défaut de jwt-cpp)
-// Si cette ligne échoue, retire-la, car elle est parfois déjà dans jwt.h selon la version
-#include <jwt-cpp/traits/kazuho-picojson.h> 
+#include <jwt-cpp/jwt.h> 
+// RETIRÉ: #include <jwt-cpp/traits/kazuho-picojson.h> (C'était la cause de l'erreur)
+
 #include <cstdlib>
 #include <string>
 #include <iostream>
@@ -49,11 +48,11 @@ void AuthMiddleware::doFilter(const drogon::HttpRequestPtr &req,
 
     try
     {
-        // 4. Décodage du token avec spécification explicite des traits (CORRECTION ICI)
+        // 4. Décodage avec spécification explicite des traits PICOJSON
+        // On garde cette partie car le compilateur en a besoin pour savoir comment parser le JSON
         auto decoded = jwt::decode<jwt::traits::kazuho_picojson>(token);
 
         // 5. Vérification
-        // On spécifie également les traits ici pour le vérificateur
         auto verifier = jwt::verify<jwt::traits::kazuho_picojson>()
             .allow_algorithm(jwt::algorithm::hs256{secret})
             .leeway(60);

@@ -12,7 +12,7 @@ int main() {
 
     drogon::app()
         // Database client with individual parameters
-        .createDbClient("postgresql",     // dbType
+        .addDbClient("postgresql",     // dbType
                        dbHost,             // host
                        std::stoi(dbPort),  // port
                        dbName,             // databaseName
